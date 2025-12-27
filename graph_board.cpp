@@ -108,7 +108,7 @@ std::string game_board::get_invalid_reason(int row, int col, cell_type type) {
     
     if(board_graph->has_path(r1, c1, r2, c2)) return "Loops not allowed!";
     
-    // Saturation Reason
+
     int current_len = 1;
     if(type == cell_type::forward_slash) {
         current_len += count_consecutive(row, col, -1, 1, type);

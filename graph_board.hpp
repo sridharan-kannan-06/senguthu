@@ -14,7 +14,6 @@ private:
     std::vector<std::vector<int>> constraints;
     graph* board_graph;
     
-    // NEW: Helper to count consecutive slants in a specific direction
     int count_consecutive(int r, int c, int dr, int dc, cell_type type);
 
 public:

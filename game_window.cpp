@@ -57,7 +57,7 @@ void game_window::clear_game_grid() {
     }
     cell_buttons.clear();
     
-    // Also delete constraint labels
+
     for(auto& row : constraint_labels) {
         for(auto& lbl : row) delete lbl;
     }
@@ -78,7 +78,7 @@ void game_window::create_game_grid() {
     game_grid.set_halign(Gtk::ALIGN_CENTER);
     game_grid.set_valign(Gtk::ALIGN_CENTER);
     
-    // 1. Create Constraints (Grid Corners)
+  
     constraint_labels.resize(n_rows + 1);
     for(int r = 0; r <= n_rows; r++) {
         constraint_labels[r].resize(n_cols + 1);
@@ -88,7 +88,6 @@ void game_window::create_game_grid() {
             
             int cons = board->get_constraint(r, c);
             if(cons != -1) {
-                // Default to RED initially
                 std::string mk = "<span color='#d32f2f' size='x-large'><b>" + 
                                 std::to_string(cons) + "</b></span>";
                 lbl->set_markup(mk);
@@ -101,7 +100,6 @@ void game_window::create_game_grid() {
         }
     }
     
-    // 2. Create Interactive Cells
     cell_buttons.resize(n_rows);
     for(int r = 0; r < n_rows; r++) {
         cell_buttons[r].resize(n_cols);
@@ -120,7 +118,7 @@ void game_window::create_game_grid() {
     
     game_grid.show_all_children();
     
-    // Run update once to catch any 0-constraints (which are automatically satisfied)
+
     update_display();
 }
 
@@ -151,7 +149,6 @@ bool game_window::on_cell_button_press(GdkEventButton* event, int row, int col) 
 }
 
 void game_window::update_display() {
-    // 1. Update Cell Buttons (Slashes)
     for(int r = 0; r < board->get_rows(); r++) {
         for(int c = 0; c < board->get_cols(); c++) {
             cell_type cell = board->get_cell(r, c);
@@ -171,7 +168,7 @@ void game_window::update_display() {
         }
     }
 
-    // 2. Update Constraint Labels (Red/Green logic)
+
     for(int r = 0; r <= board->get_rows(); r++) {
         for(int c = 0; c <= board->get_cols(); c++) {
             int constraint = board->get_constraint(r, c);
