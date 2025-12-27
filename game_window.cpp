@@ -123,3 +123,119 @@ void game_window::create_game_grid() {
     // Run update once to catch any 0-constraints (which are automatically satisfied)
     update_display();
 }
+
+bool game_window::on_cell_button_press(GdkEventButton* event, int row, int col) {
+    if(!player_turn || board == nullptr) return true;
+    
+    cell_type type;
+    if(event->button == 1) type = cell_type::forward_slash; 
+    else if(event->button == 3) type = cell_type::back_slash;
+    else return false;
+    
+    if(board->is_valid_move(row, col, type)) {
+        board->apply_move(row, col, type);
+        update_display();
+        
+        player_turn = false;
+        turn_label.set_markup("<big><b>CPU Thinking...</b></big>");
+        info_label.set_text("CPU is calculating...");
+        
+        Glib::signal_timeout().connect_once(
+            sigc::mem_fun(*this, &game_window::cpu_move), 600);
+    } else {
+        std::string rsn = board->get_invalid_reason(row, col, type);
+        info_label.set_text("INVALID: " + rsn);
+    }
+    
+    return true; 
+}
+
+void game_window::update_display() {
+    // 1. Update Cell Buttons (Slashes)
+    for(int r = 0; r < board->get_rows(); r++) {
+        for(int c = 0; c < board->get_cols(); c++) {
+            cell_type cell = board->get_cell(r, c);
+            auto btn = cell_buttons[r][c];
+            
+            if(cell != cell_type::empty) {
+                std::string slash_char = (cell == cell_type::forward_slash) ? "/" : "\\";
+                btn->set_label(slash_char);
+                
+                Gtk::Label* lbl = dynamic_cast<Gtk::Label*>(btn->get_child());
+                if(lbl) {
+                    std::string markup = "<span size='xx-large' weight='bold'>" + slash_char + "</span>";
+                    lbl->set_markup(markup);
+                }
+                btn->set_sensitive(false);
+            }
+        }
+    }
+
+    // 2. Update Constraint Labels (Red/Green logic)
+    for(int r = 0; r <= board->get_rows(); r++) {
+        for(int c = 0; c <= board->get_cols(); c++) {
+            int constraint = board->get_constraint(r, c);
+            
+            // Only update if there is a number constraint (-1 means no constraint)
+            if(constraint != -1) {
+                int current_degree = board->get_degree(r, c);
+                
+                std::string color;
+                if(current_degree == constraint) {
+                    color = "#2e7d32"; // Green (Success)
+                } else if(current_degree > constraint) {
+                    color = "#c62828"; // Red (Failed/Overfilled - strictly shouldn't happen with validation)
+                } else {
+                    color = "#d32f2f"; // Red (Incomplete)
+                }
+
+                std::string mk = "<span color='" + color + "' size='x-large'><b>" + 
+                                std::to_string(constraint) + "</b></span>";
+                constraint_labels[r][c]->set_markup(mk);
+            }
+        }
+    }
+}
+
+void game_window::cpu_move() {
+    check_game_over();
+    if(!board->has_valid_moves()) return;
+    
+    game_move m = cpu->decide_move();
+    board->apply_move(m.row, m.col, m.type);
+    
+    std::string move_char = (m.type == cell_type::forward_slash) ? "/" : "\\";
+    info_label.set_text("CPU placed '" + move_char + "' at (" + 
+        std::to_string(m.row) + "," + std::to_string(m.col) + "). Your turn!");
+    
+    update_display();
+    player_turn = true;
+    turn_label.set_markup("<big><b>👤 Your Turn</b></big>");
+    check_game_over();
+}
+
+void game_window::check_game_over() {
+    if(!board->has_valid_moves()) {
+        if(player_turn) {
+            turn_label.set_markup("<big><b>💀 GAME OVER</b></big>");
+            info_label.set_text("CPU Wins! No valid moves left for you.");
+        } else {
+            turn_label.set_markup("<big><b>🏆 YOU WIN!</b></big>");
+            info_label.set_text("Victory! CPU has no valid moves left.");
+        }
+    }
+}
+
+void game_window::on_new_game(int size) {
+    if(board) { delete board; delete cpu; }
+    
+    level_grid level = level_data::get_random_level(size);
+    board = new game_board(level);
+    cpu = new greedy_cpu(board);
+    
+    player_turn = true;
+    create_game_grid();
+    
+    turn_label.set_markup("<big><b>👤 Your Turn</b></big>");
+    info_label.set_text("Left Click: Forward Slash (/)\nRight Click: Back Slash (\\)");
+}
