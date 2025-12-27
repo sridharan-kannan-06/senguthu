@@ -48,3 +48,21 @@ int greedy_cpu::calculate_move_score(game_move m) {
     
     return score;
 }
+
+game_move greedy_cpu::decide_move() {
+    auto valid_moves = get_all_valid_moves();
+    if(valid_moves.empty()) return {-1, -1, cell_type::empty};
+    
+    std::vector<ranked_move> ranked;
+    for(const auto& m : valid_moves) {
+        ranked.push_back({m, calculate_move_score(m)});
+    }
+    
+    // Sort descending by score
+    std::sort(ranked.begin(), ranked.end(), 
+        [](const ranked_move& a, const ranked_move& b) {
+            return a.score > b.score;
+        });
+    
+    return ranked[0].move;
+}
